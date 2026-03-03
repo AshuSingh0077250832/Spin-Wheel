@@ -21,6 +21,7 @@ html, body {
   min-height: 100vh;
 }
 
+/* ── TOP BAR ── */
 .topbar {
   width: 100%;
   background: #fff;
@@ -39,6 +40,7 @@ html, body {
   color: #DC0C2C; letter-spacing: 1px;
 }
 
+/* ── MAIN LAYOUT ── */
 .main {
   flex: 1;
   display: flex;
@@ -49,11 +51,12 @@ html, body {
   padding: 32px 24px;
 }
 
+/* ── RESPONSE KEY ── */
 .response-key {
   background: #fff;
   border-radius: 16px;
   padding: 24px 20px;
-  width: 220px;
+  width: 290px;
   flex-shrink: 0;
   box-shadow: 0 4px 16px rgba(0,0,0,0.10);
   border-top: 5px solid #DC0C2C;
@@ -65,20 +68,34 @@ html, body {
   color: #DC0C2C; margin-bottom: 18px;
   text-transform: uppercase; letter-spacing: 1px;
 }
-.response-key ul { list-style: none; display: flex; flex-direction: column; gap: 16px; }
-.response-key ul li {
-  display: flex; align-items: flex-start;
-  gap: 10px; font-size: 13px; color: #333; line-height: 1.5;
+.response-key ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.response-key ul li .emoji { font-size: 20px; flex-shrink: 0; }
+.response-key ul li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.response-key ul li .emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
 
+/* ── WHEEL ── */
 .wheel-area {
   position: relative;
   width: 500px; height: 500px;
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-
 .arrow {
   position: absolute;
   top: -10px; left: 50%;
@@ -99,7 +116,6 @@ html, body {
   border-right: 16px solid transparent;
   border-top: 28px solid #ddd;
 }
-
 svg#wheel {
   width: 500px; height: 500px;
   transition: transform 4s cubic-bezier(.33,1,.68,1);
@@ -111,6 +127,7 @@ svg#wheel {
 }
 #wheel path { stroke: #111; stroke-width: 3; }
 
+/* ── SPIN BUTTON ── */
 #spinBtn {
   position: absolute;
   width: 108px; height: 108px;
@@ -128,6 +145,7 @@ svg#wheel {
 #spinBtn:hover { transform: translate(-50%, -50%) scale(1.05); }
 #spinBtn:active { transform: translate(-50%, -50%) scale(0.97); }
 
+/* ── RESULT ── */
 .result-area {
   width: 240px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -149,6 +167,7 @@ svg#wheel {
   to   { transform: scale(1);   opacity: 1; }
 }
 
+/* ── CONFETTI ── */
 #confettiCanvas {
   position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
@@ -190,6 +209,7 @@ svg#wheel {
 <canvas id="confettiCanvas"></canvas>
 
 <script>
+// Logo fallback
 const logo = document.getElementById("aiLogo");
 logo.onerror = function() {
   logo.style.display = "none";
@@ -210,6 +230,7 @@ const svg = document.getElementById("wheel");
 const center = 250, radius = 220;
 const segmentAngle = 360 / labels.length;
 
+// DEFS
 const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
 const rivetGrad = document.createElementNS("http://www.w3.org/2000/svg","radialGradient");
 rivetGrad.setAttribute("id","rivetGrad");
@@ -229,6 +250,7 @@ function splitLabel(text, maxLen = 12) {
   if (cur) lines.push(cur); return lines;
 }
 
+// BUILD SEGMENTS
 labels.forEach((text, i) => {
   const sa = i * segmentAngle, ea = sa + segmentAngle;
   const x1 = center + radius * Math.cos(Math.PI * sa / 180);
@@ -246,7 +268,8 @@ labels.forEach((text, i) => {
   const lh = 15, totalH = (lines.length - 1) * lh;
   const textEl = document.createElementNS("http://www.w3.org/2000/svg","text");
   textEl.setAttribute("x", tx); textEl.setAttribute("y", ty);
-  textEl.setAttribute("text-anchor","start"); textEl.setAttribute("dominant-baseline","middle");
+  textEl.setAttribute("text-anchor","start");
+  textEl.setAttribute("dominant-baseline","middle");
   textEl.setAttribute("transform", `rotate(${midAngle + 180} ${tx} ${ty})`);
   lines.forEach((line, li) => {
     const ts = document.createElementNS("http://www.w3.org/2000/svg","tspan");
@@ -256,12 +279,14 @@ labels.forEach((text, i) => {
   svg.appendChild(textEl);
 });
 
+// OUTER RIM
 const rim = document.createElementNS("http://www.w3.org/2000/svg","circle");
 rim.setAttribute("cx", center); rim.setAttribute("cy", center);
 rim.setAttribute("r", radius + 8); rim.setAttribute("fill","none");
 rim.setAttribute("stroke","#222"); rim.setAttribute("stroke-width","10");
 svg.appendChild(rim);
 
+// RIVETS
 for (let i = 0; i < labels.length; i++) {
   const angle = i * segmentAngle;
   const x = center + (radius + 4) * Math.cos(Math.PI * angle / 180);
@@ -278,6 +303,7 @@ function isColorDark(hex) {
   return (r*299 + g*587 + b*114) / 1000 < 128;
 }
 
+// AUDIO
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let actx = null;
 function getACtx() { if (!actx) actx = new AudioCtx(); return actx; }
@@ -325,6 +351,7 @@ function playWinJingle() {
   }, 750);
 }
 
+// CONFETTI
 const canvas = document.getElementById("confettiCanvas");
 const cctx = canvas.getContext("2d");
 let confettiParticles = [], confettiAnim = null;
@@ -362,6 +389,7 @@ function animateConfetti() {
   if (confettiParticles.length > 0) confettiAnim = requestAnimationFrame(animateConfetti);
 }
 
+// SPIN
 let rotation = 0, spinning = false;
 
 document.getElementById("spinBtn").onclick = () => {
