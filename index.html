@@ -1,1 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Air India Spin Wheel</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  width: 100%; height: 100%;
+  background: #f0f0f0;
+  font-family: 'Open Sans', sans-serif;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.topbar {
+  width: 100%;
+  background: #fff;
+  padding: 10px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  flex-shrink: 0;
+}
+.topbar img { height: 50px; width: auto; object-fit: contain; display: block; }
+#logoFallback {
+  display: none;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900; font-size: 22px;
+  color: #DC0C2C; letter-spacing: 1px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 32px 24px;
+}
+
+.response-key {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 20px;
+  width: 220px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  border-top: 5px solid #DC0C2C;
+  align-self: center;
+}
+.response-key h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px; font-weight: 900;
+  color: #DC0C2C; margin-bottom: 18px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.response-key ul { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+.response-key ul li {
+  display: flex; align-items: flex-start;
+  gap: 10px; font-size: 13px; color: #333; line-height: 1.5;
+}
+.response-key ul li .emoji { font-size: 20px; flex-shrink: 0; }
+
+.wheel-area {
+  position: relative;
+  width: 500px; height: 500px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.arrow {
+  position: absolute;
+  top: -10px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 36px solid #5a5a5a;
+  z-index: 20;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.35));
+}
+.arrow::after {
+  content: "";
+  position: absolute;
+  left: -16px; top: -32px;
+  width: 0; height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 28px solid #ddd;
+}
+
+svg#wheel {
+  width: 500px; height: 500px;
+  transition: transform 4s cubic-bezier(.33,1,.68,1);
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,0.28));
+}
+#wheel text {
+  fill: white; font-size: 14px; font-weight: bold;
+  pointer-events: none; font-family: 'Montserrat', sans-serif;
+}
+#wheel path { stroke: #111; stroke-width: 3; }
+
+#spinBtn {
+  position: absolute;
+  width: 108px; height: 108px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f8f8f8, #9e9e9e);
+  border: 7px solid #444;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900; font-size: 18px; color: #222;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer; z-index: 10;
+  box-shadow: inset 0 4px 8px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.25);
+  letter-spacing: 1px;
+}
+#spinBtn:hover { transform: translate(-50%, -50%) scale(1.05); }
+#spinBtn:active { transform: translate(-50%, -50%) scale(0.97); }
+
+.result-area {
+  width: 240px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#result {
+  width: 100%;
+  border-radius: 16px;
+  padding: 24px 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px; font-weight: 700;
+  text-align: center; line-height: 1.6;
+  white-space: pre-line;
+  box-shadow: 4px 4px 16px rgba(0,0,0,0.18);
+  display: none;
+  animation: popIn 0.4s cubic-bezier(.22,1.2,.36,1) both;
+}
+@keyframes popIn {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+#confettiCanvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 999;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <img id="aiLogo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Air_India_2023.svg/1200px-Air_India_2023.svg.png" alt="Air India"/>
+    <span id="logoFallback">✈ AIR INDIA</span>
+  </div>
+
+  <div class="main">
+    <div class="response-key">
+      <h3>Response Key</h3>
+      <ul>
+        <li><span class="emoji">🤎</span><span>I am pausing to reflect critically</span></li>
+        <li><span class="emoji">💛</span><span>I learnt something new</span></li>
+        <li><span class="emoji">💙</span><span>I can relate to it</span></li>
+        <li><span class="emoji">🧡</span><span>I am inspired to act</span></li>
+      </ul>
+    </div>
+
+    <div class="wheel-area">
+      <div class="arrow"></div>
+      <svg id="wheel" viewBox="0 0 500 500"></svg>
+      <button id="spinBtn">SPIN</button>
+    </div>
+
+    <div class="result-area">
+      <div id="result"></div>
+    </div>
+  </div>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<script>
+const logo = document.getElementById("aiLogo");
+logo.onerror = function() {
+  logo.style.display = "none";
+  document.getElementById("logoFallback").style.display = "inline-block";
+};
+
+const labels = [
+  "Act with Transparency","Understand others' context","Demonstrate care",
+  "Put customer at the center","Take 'no excuses' ownership","Maintain high standards",
+  "Act decisively","Spot opportunities & test ideas","Take accountability","Act with consistency"
+];
+const colors = [
+  "#14A7C7","#FF0F6D","#1FC94E","#E2231A","#9C27B0",
+  "#17B6C9","#FF0057","#1E73D8","#FF7A00","#FFC107"
+];
+
+const svg = document.getElementById("wheel");
+const center = 250, radius = 220;
+const segmentAngle = 360 / labels.length;
+
+const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
+const rivetGrad = document.createElementNS("http://www.w3.org/2000/svg","radialGradient");
+rivetGrad.setAttribute("id","rivetGrad");
+const s1 = document.createElementNS("http://www.w3.org/2000/svg","stop");
+s1.setAttribute("offset","0%"); s1.setAttribute("stop-color","#fff");
+const s2 = document.createElementNS("http://www.w3.org/2000/svg","stop");
+s2.setAttribute("offset","100%"); s2.setAttribute("stop-color","#888");
+rivetGrad.appendChild(s1); rivetGrad.appendChild(s2);
+defs.appendChild(rivetGrad); svg.appendChild(defs);
+
+function splitLabel(text, maxLen = 12) {
+  const words = text.split(" "); const lines = []; let cur = "";
+  words.forEach(w => {
+    if ((cur + " " + w).trim().length <= maxLen) cur = (cur + " " + w).trim();
+    else { if (cur) lines.push(cur); cur = w; }
+  });
+  if (cur) lines.push(cur); return lines;
+}
+
+labels.forEach((text, i) => {
+  const sa = i * segmentAngle, ea = sa + segmentAngle;
+  const x1 = center + radius * Math.cos(Math.PI * sa / 180);
+  const y1 = center + radius * Math.sin(Math.PI * sa / 180);
+  const x2 = center + radius * Math.cos(Math.PI * ea / 180);
+  const y2 = center + radius * Math.sin(Math.PI * ea / 180);
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d", `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`);
+  path.setAttribute("fill", colors[i]); svg.appendChild(path);
+
+  const midAngle = sa + segmentAngle / 2;
+  const tx = center + 205 * Math.cos(Math.PI * midAngle / 180);
+  const ty = center + 205 * Math.sin(Math.PI * midAngle / 180);
+  const lines = splitLabel(text, 12);
+  const lh = 15, totalH = (lines.length - 1) * lh;
+  const textEl = document.createElementNS("http://www.w3.org/2000/svg","text");
+  textEl.setAttribute("x", tx); textEl.setAttribute("y", ty);
+  textEl.setAttribute("text-anchor","start"); textEl.setAttribute("dominant-baseline","middle");
+  textEl.setAttribute("transform", `rotate(${midAngle + 180} ${tx} ${ty})`);
+  lines.forEach((line, li) => {
+    const ts = document.createElementNS("http://www.w3.org/2000/svg","tspan");
+    ts.setAttribute("x", tx); ts.setAttribute("dy", li === 0 ? -totalH / 2 : lh);
+    ts.textContent = line; textEl.appendChild(ts);
+  });
+  svg.appendChild(textEl);
+});
+
+const rim = document.createElementNS("http://www.w3.org/2000/svg","circle");
+rim.setAttribute("cx", center); rim.setAttribute("cy", center);
+rim.setAttribute("r", radius + 8); rim.setAttribute("fill","none");
+rim.setAttribute("stroke","#222"); rim.setAttribute("stroke-width","10");
+svg.appendChild(rim);
+
+for (let i = 0; i < labels.length; i++) {
+  const angle = i * segmentAngle;
+  const x = center + (radius + 4) * Math.cos(Math.PI * angle / 180);
+  const y = center + (radius + 4) * Math.sin(Math.PI * angle / 180);
+  const rivet = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  rivet.setAttribute("cx", x); rivet.setAttribute("cy", y);
+  rivet.setAttribute("r", 6); rivet.setAttribute("fill","url(#rivetGrad)");
+  rivet.setAttribute("stroke","#555"); rivet.setAttribute("stroke-width","1");
+  svg.appendChild(rivet);
+}
+
+function isColorDark(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (r*299 + g*587 + b*114) / 1000 < 128;
+}
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function getACtx() { if (!actx) actx = new AudioCtx(); return actx; }
+
+function startRattle() {
+  const ctx = getACtx();
+  let nextTick = ctx.currentTime;
+  const totalDur = 3.8; let interval = 0.12, elapsed = 0;
+  function scheduleTick() {
+    if (elapsed >= totalDur) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++)
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.3));
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const gain = ctx.createGain(); gain.gain.value = 0.22;
+    src.connect(gain); gain.connect(ctx.destination); src.start(nextTick);
+    elapsed += interval; interval = Math.max(0.025, interval * 0.97); nextTick += interval;
+    setTimeout(scheduleTick, Math.max(0, (nextTick - ctx.currentTime - 0.05) * 1000));
+  }
+  scheduleTick();
+}
+
+function playWinJingle() {
+  const ctx = getACtx();
+  [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.13);
+    gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + i * 0.13 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.6);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + i * 0.13); osc.stop(ctx.currentTime + i * 0.13 + 0.65);
+  });
+  setTimeout(() => {
+    [1046, 1318, 1568].forEach((freq, i) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'triangle'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + i * 0.1 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.5);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.1); osc.stop(ctx.currentTime + i * 0.1 + 0.55);
+    });
+  }, 750);
+}
+
+const canvas = document.getElementById("confettiCanvas");
+const cctx = canvas.getContext("2d");
+let confettiParticles = [], confettiAnim = null;
+
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas(); window.addEventListener("resize", resizeCanvas);
+
+function launchConfetti() {
+  confettiParticles = [];
+  const cc = ["#DC0C2C","#FFD700","#14A7C7","#1FC94E","#FF0F6D","#9C27B0","#FF7A00","#fff"];
+  for (let i = 0; i < 160; i++) {
+    confettiParticles.push({
+      x: Math.random() * canvas.width, y: -10 - Math.random() * 100,
+      r: 4 + Math.random() * 7, color: cc[Math.floor(Math.random() * cc.length)],
+      vx: (Math.random() - 0.5) * 5, vy: 3 + Math.random() * 5,
+      angle: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 0.2,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle'
+    });
+  }
+  if (confettiAnim) cancelAnimationFrame(confettiAnim);
+  animateConfetti();
+  setTimeout(() => { cancelAnimationFrame(confettiAnim); cctx.clearRect(0,0,canvas.width,canvas.height); }, 4500);
+}
+
+function animateConfetti() {
+  cctx.clearRect(0, 0, canvas.width, canvas.height);
+  confettiParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.angle += p.spin; p.vy += 0.1;
+    cctx.save(); cctx.translate(p.x, p.y); cctx.rotate(p.angle); cctx.fillStyle = p.color;
+    if (p.shape === 'rect') cctx.fillRect(-p.r/2, -p.r/2, p.r, p.r * 0.5);
+    else { cctx.beginPath(); cctx.arc(0, 0, p.r/2, 0, Math.PI*2); cctx.fill(); }
+    cctx.restore();
+  });
+  confettiParticles = confettiParticles.filter(p => p.y < canvas.height + 20);
+  if (confettiParticles.length > 0) confettiAnim = requestAnimationFrame(animateConfetti);
+}
+
+let rotation = 0, spinning = false;
+
+document.getElementById("spinBtn").onclick = () => {
+  if (spinning) return;
+  spinning = true;
+  const resultEl = document.getElementById("result");
+  resultEl.style.display = "none";
+  startRattle();
+  const randomIndex = Math.floor(Math.random() * labels.length);
+  const extraSpins = 5 + Math.floor(Math.random() * 3);
+  const segmentMid = randomIndex * segmentAngle + segmentAngle / 2;
+  const targetRotation = (270 - segmentMid + 360) % 360;
+  const currentMod = rotation % 360;
+  let diff = targetRotation - currentMod;
+  if (diff <= 0) diff += 360;
+  rotation += extraSpins * 360 + diff;
+  svg.style.transform = `rotate(${rotation}deg)`;
+  setTimeout(() => {
+    const segmentColor = colors[randomIndex];
+    resultEl.style.background = segmentColor;
+    resultEl.style.color = isColorDark(segmentColor) ? "#fff" : "#000";
+    resultEl.style.display = "block";
+    resultEl.innerText = "What have you done to -\n" + labels[randomIndex] + "?";
+    spinning = false;
+    playWinJingle();
+    launchConfetti();
+  }, 4000);
+};
+</script>
+</body>
+</html>
